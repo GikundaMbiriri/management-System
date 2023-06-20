@@ -2,31 +2,34 @@ import { EntityState, createEntityAdapter, createSelector } from "@reduxjs/toolk
 import { apiSlice } from "../../api/apiSlice";
 import { Program } from "@/types";
 import { RootState } from "../../store";
-type ProgramsResponse = Program[]
-type ResultType={
-    entities:Program[],
-    ids:String[]
+type ProgramsResponse = {
+  count:number,
+  programmes:Program[]
 }
+
 const programsAdapter = createEntityAdapter<Program>({
-  sortComparer: (a, b) => b.title.localeCompare(a.title),
+  selectId: (program: Program) => program._id,
+  sortComparer: (a, b) => b.title.localeCompare(a.title)
 });
 
-const initialState = programsAdapter.getInitialState();
+const initialState = programsAdapter.getInitialState()
 
 export const extendedApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getPrograms: builder.query<EntityState<Program>, void>({
-      query: () => "/programs",
+    getPrograms: builder.query<EntityState<Program>, string>({
+      query: (url) => url,
       transformResponse: (responseData:ProgramsResponse):EntityState<Program> => {
        
   
-        const loadedPrograms = responseData.map((program:Program) => {
+        const loadedPrograms = responseData.programmes.map((program:Program) => {
+          program.count=responseData.count;
          
           return program;
         });
         return programsAdapter.setAll(initialState, loadedPrograms);
       },
       providesTags: (result:any) => {
+      
         return [
           { type: "Program", id: "LIST" },
           ...result?.ids?.map((id:string) => ({ type: "Program", id })),
@@ -34,46 +37,31 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
         
       },
     }),
-    getProgramsByUserId: builder.query({
-      query: (id) => `/programs/?userId=${id}`,
-      transformResponse: (responseData:ProgramsResponse) => {
-   
-        const loadedPrograms = responseData.map((program) => {
-        
-          return program;
-        });
-        return programsAdapter.setAll(initialState, loadedPrograms);
-      },
-      providesTags: (result:any, error, arg) => [
-        ...result?.ids?.map((id:string) => ({ type: "Program", id })),
-      ],
-    }),
+  
+  
     addNewProgram: builder.mutation({
       query: (initialPost) => ({
-        url: "/programs",
+        url: "/programme/create",
         method: "POST",
         body: {
-          ...initialPost,
-          userId: Number(initialPost.userId),
-     
+          ...initialPost,     
         },
       }),
       invalidatesTags: [{ type: "Program", id: "LIST" }],
     }),
     updateProgram: builder.mutation({
       query: (initialPost) => ({
-        url: `/programs/${initialPost.id}`,
+        url: `/programme/edit/${initialPost.id}`,
         method: "PUT",
         body: {
           ...initialPost,
-          date: new Date().toISOString(),
         },
       }),
       invalidatesTags: (result, error, arg) => [{ type: "Program", id: arg.id }],
     }),
     deleteProgram: builder.mutation({
       query: ({ id }) => ({
-        url: `/programs/${id}`,
+        url: `/programme/delete/${id}`,
         method: "DELETE",
         body: { id },
       }),
@@ -85,7 +73,7 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
 
 export const {
   useGetProgramsQuery,
-  useGetProgramsByUserIdQuery,
+ 
   useAddNewProgramMutation,
   useUpdateProgramMutation,
   useDeleteProgramMutation,
@@ -93,7 +81,7 @@ export const {
 } = extendedApiSlice;
 
 // returns the query result object
-export const selectProgramsResult = extendedApiSlice.endpoints.getPrograms.select();
+export const selectProgramsResult = extendedApiSlice.endpoints.getPrograms.select("/programme/programmes?pageNum=1&pageSize=10");
 
 // Creates memoized selector
 const selectProgramsData = createSelector(

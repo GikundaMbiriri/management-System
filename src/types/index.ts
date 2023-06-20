@@ -25,5 +25,29 @@ export interface Program{
    tuitionFees:number,
    intakes:string[],
    level:string,
+   count:number
 
+}
+
+export interface User{
+   role:string,
+   emailVerified:boolean,
+   phoneVerified:boolean,
+   _id:string,
+   firstName:string,
+   lastName:string,
+   approvalStatus:string,
+   onboarding:boolean,
+   recruitmentDetails?:{
+      studentsFrom:string[],
+      studentsTo:string[],
+   },
+business?:{
+   location:{},
+   socials:{}
+}
+
+}
+export interface Search{
+   query:string
 }
